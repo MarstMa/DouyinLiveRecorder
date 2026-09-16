@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# 打包产物
+build/
+dist/
+*.spec.bak
+
+# FFmpeg 可执行文件（体积约 200MB，超过 GitHub 100MB 上限，不提交；见 README 下载说明）
+assets/ffmpeg.exe
+assets/ffprobe.exe
+
+# 运行数据
+*.ts
+*.log
+config.local.json
+
+# 系统
+Thumbs.db
+.DS_Store
