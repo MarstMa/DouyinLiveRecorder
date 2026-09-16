@@ -21,7 +21,9 @@ def main():
     app.aboutToQuit.connect(scheduler.stop)
 
     window = MainWindow(config, scheduler)
-    window.show()
+    start_hidden = "--autostart" in sys.argv and config.data.get("start_minimized", False)
+    if not start_hidden:
+        window.show()
 
     sys.exit(app.exec())
 

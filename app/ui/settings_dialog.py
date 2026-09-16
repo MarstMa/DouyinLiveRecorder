@@ -56,6 +56,12 @@ class SettingsDialog(QDialog):
         self.autostart_check.setChecked(autostart.is_enabled())
         form.addRow("", self.autostart_check)
 
+        self.minimized_check = QCheckBox("开机最小化启动（启动时不弹出窗口，后台运行）")
+        self.minimized_check.setChecked(bool(config.data.get("start_minimized", False)))
+        self.minimized_check.setEnabled(autostart.is_enabled())
+        self.autostart_check.toggled.connect(self.minimized_check.setEnabled)
+        form.addRow("", self.minimized_check)
+
         self.update_check = QCheckBox("启动时自动检查更新")
         self.update_check.setChecked(bool(config.data.get("check_update_on_start", True)))
         form.addRow("", self.update_check)
@@ -141,6 +147,7 @@ class SettingsDialog(QDialog):
         self.config.data["default_quality"] = self.quality_combo.currentText()
         self.config.data["cookie"] = self.cookie_edit.toPlainText().strip()
         self.config.data["check_update_on_start"] = self.update_check.isChecked()
+        self.config.data["start_minimized"] = self.minimized_check.isChecked()
 
         want_autostart = self.autostart_check.isChecked()
         try:

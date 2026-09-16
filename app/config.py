@@ -48,6 +48,7 @@ DEFAULT_CONFIG = {
     "detect_interval_seconds": 20,
     "hot_interval_seconds": 10,
     "auto_start": False,
+    "start_minimized": False,
     "check_update_on_start": True,
     "default_quality": "原画",
     "default_record_mode": "截流",

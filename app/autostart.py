@@ -9,10 +9,10 @@ APP_NAME = "StreamerRecording"
 
 def _launch_command() -> str:
     if getattr(sys, "frozen", False):
-        return f'"{sys.executable}"'
+        return f'"{sys.executable}" --autostart'
     python = sys.executable
     main_py = Path(__file__).resolve().parent.parent / "main.py"
-    return f'"{python}" "{main_py}"'
+    return f'"{python}" "{main_py}" --autostart'
 
 
 def is_enabled() -> bool:
