@@ -9,6 +9,7 @@ env/
 # 打包产物
 build/
 dist/
+*.spec
 *.spec.bak
 
 # FFmpeg 可执行文件（体积约 200MB，超过 GitHub 100MB 上限，不提交；见 README 下载说明）
