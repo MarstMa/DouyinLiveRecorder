@@ -6,6 +6,7 @@ import uuid
 from pathlib import Path
 
 APP_NAME = "StreamerRecording"
+APP_VERSION = "0.2"
 
 # 画质选项（界面显示名 -> streamget 使用的代码）
 QUALITY_OPTIONS = {
@@ -47,6 +48,7 @@ DEFAULT_CONFIG = {
     "detect_interval_seconds": 20,
     "hot_interval_seconds": 10,
     "auto_start": False,
+    "check_update_on_start": True,
     "default_quality": "原画",
     "default_record_mode": "截流",
     "cookie": "",

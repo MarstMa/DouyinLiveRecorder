@@ -1,5 +1,8 @@
 """主窗口：顶部横幅 + 主播页（三级导航）+ 系统托盘。"""
-from PySide6.QtCore import Qt
+import threading
+import webbrowser
+
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction, QColor, QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -8,6 +11,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QMainWindow,
     QMenu,
+    QMessageBox,
     QPushButton,
     QSystemTrayIcon,
     QVBoxLayout,
@@ -16,6 +20,7 @@ from PySide6.QtWidgets import (
 
 from ..config import Config
 from ..scheduler import Scheduler
+from ..updater import check_for_update
 from .settings_dialog import SettingsDialog
 from .streamer_page import StreamerPage
 
@@ -39,6 +44,8 @@ def make_app_icon() -> QIcon:
 
 
 class MainWindow(QMainWindow):
+    update_found = Signal(str, str)
+
     def __init__(self, config: Config, scheduler: Scheduler):
         super().__init__()
         self.config = config
@@ -52,7 +59,10 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self._setup_tray()
         self.scheduler.notify.connect(self._on_notify)
+        self.update_found.connect(self._on_update_found)
         self._start_detection()
+        if self.config.data.get("check_update_on_start", True):
+            self._start_update_check()
 
     def _build_ui(self):
         central = QWidget()
@@ -116,6 +126,26 @@ class MainWindow(QMainWindow):
 
     def _open_settings(self):
         SettingsDialog(self.config, self).exec()
+
+    # ---------- 检查更新 ----------
+    def _start_update_check(self):
+        threading.Thread(target=self._update_check_worker, daemon=True).start()
+
+    def _update_check_worker(self):
+        r = check_for_update()
+        if r.get("ok") and r.get("is_new"):
+            self.update_found.emit(r["latest"], r["url"])
+
+    def _on_update_found(self, version, url):
+        box = QMessageBox(self)
+        box.setWindowTitle("发现新版本")
+        box.setText(f"发现新版本 v{version}，是否前往下载？")
+        box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        box.button(QMessageBox.Yes).setText("去下载")
+        box.button(QMessageBox.No).setText("稍后")
+        box.setDefaultButton(QMessageBox.Yes)
+        if box.exec() == QMessageBox.Yes:
+            webbrowser.open(url)
 
     # ---------- 托盘 / 关闭 ----------
     def _on_notify(self, title, message):
