@@ -58,6 +58,9 @@ class Recorder:
         cmd = [
             self.ffmpeg, "-hide_banner", "-loglevel", "warning",
             "-rw_timeout", "30000000",
+            "-reconnect", "1",
+            "-reconnect_streamed", "1",
+            "-reconnect_delay_max", "30",
             "-protocol_whitelist", "rtmp,crypto,file,http,https,tcp,tls,udp,rtp",
             "-thread_queue_size", "1024",
             "-analyzeduration", "20000000",

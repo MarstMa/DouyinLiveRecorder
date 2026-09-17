@@ -10,6 +10,9 @@ from .extractor import check_stream
 from .naming import DEFAULT_FILENAME_TEMPLATE, render_filename
 from .recorder import Recorder
 
+# 下播确认次数：连续这么多次检测到「未开播」才停止录制，避免短暂检测波动把一次直播切成多段
+OFFLINE_CONFIRM_COUNT = 3
+
 
 class Scheduler(QObject):
     """在后台线程轮询各主播开播状态，并驱动多个主播同时录制。"""
@@ -34,6 +37,7 @@ class Scheduler(QObject):
         self._wake = threading.Event()
         self._lock = threading.Lock()
         self._live = {}          # sid -> 最近一次检测结果（仅开播中的）
+        self._offline_streak = {}  # sid -> 连续检测到「未开播」的次数（下播容错用）
         self._recordings = {}    # sid -> {proc, ts_path, folder, basename, name}
         self._was_live = None    # 上一轮开播集合（None=首轮，用于开播提醒）
         self._last_check = {}    # sid -> 上次检测时间（用于每个主播自己的检测频率）
@@ -135,12 +139,15 @@ class Scheduler(QObject):
         if info.get("ok") and info.get("is_live"):
             with self._lock:
                 self._live[sid] = info
+                self._offline_streak.pop(sid, None)
             self.status_updated.emit(sid, "live", info.get("anchor_name") or s.get("name") or "", "")
         elif info.get("ok"):
             with self._lock:
                 self._live.pop(sid, None)
+                self._offline_streak[sid] = self._offline_streak.get(sid, 0) + 1
             self.status_updated.emit(sid, "offline", info.get("anchor_name") or s.get("name") or "", "")
         else:
+            # 检测失败不判为下播，不打断录制
             self.status_updated.emit(sid, "error", s.get("name") or "", info.get("error") or "检测失败")
 
     def _manual_start_worker(self, sid):
@@ -194,12 +201,15 @@ class Scheduler(QObject):
             if info.get("ok") and info.get("is_live"):
                 with self._lock:
                     self._live[sid] = info
+                    self._offline_streak.pop(sid, None)  # 开播，清零未开播计数
                 self.status_updated.emit(sid, "live", info.get("anchor_name") or name, "")
             elif info.get("ok"):
                 with self._lock:
                     self._live.pop(sid, None)
+                    self._offline_streak[sid] = self._offline_streak.get(sid, 0) + 1
                 self.status_updated.emit(sid, "offline", info.get("anchor_name") or name, "")
             else:
+                # 检测失败（网络/风控）不判为下播，保持录制不打断
                 with self._lock:
                     self._live.pop(sid, None)
                 err = info.get("error") or "检测失败"
@@ -223,11 +233,14 @@ class Scheduler(QObject):
         with self._lock:
             recs = list(self._recordings.items())
             current_live = set(self._live.keys())
+            offline_streak = dict(self._offline_streak)
         for sid, r in recs:
-            if sid not in current_live:
-                self._stop_recording(sid, "主播已下播")
-            elif r["proc"].poll() is not None:
+            if r["proc"].poll() is not None:
+                # ffmpeg 已退出（真实断流 / 下播），立即收尾
                 self._stop_recording(sid, "录制进程退出")
+            elif sid not in current_live and offline_streak.get(sid, 0) >= OFFLINE_CONFIRM_COUNT:
+                # 连续多次确认「未开播」才停，避免短暂检测波动把一次直播切成多段
+                self._stop_recording(sid, "主播已下播")
 
         # 3) 自动开始：所有开启自动录制、正在开播、且尚未录制的主播
         with self._lock:

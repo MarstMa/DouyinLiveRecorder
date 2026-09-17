@@ -2,7 +2,7 @@
 
 一款运行在 **Windows 11** 上的抖音直播录制工具。自动检测主播是否开播，开播自动录制、下播自动保存，全程后台运行、不打扰正常使用。
 
-> 版本 0.3.1 · 作者 MarstMa · 英文名 DouyinLiveRecorder
+> 版本 0.3.2 · 作者 MarstMa · 英文名 DouyinLiveRecorder
 
 ## 功能特性
 
