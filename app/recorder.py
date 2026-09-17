@@ -3,7 +3,6 @@ import os
 import shutil
 import subprocess
 import sys
-from datetime import datetime
 from pathlib import Path
 
 CREATE_NO_WINDOW = 0x08000000 if os.name == "nt" else 0
@@ -150,12 +149,3 @@ class Recorder:
             return r.stdout.decode("utf-8", "ignore").strip()
         except Exception:  # noqa: BLE001
             return None
-
-
-def make_basename(anchor_name: str) -> str:
-    """生成录制文件前缀：主播名_日期_时间。"""
-    from .config import sanitize_filename
-
-    name = sanitize_filename(anchor_name)
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    return f"{name}_{ts}"

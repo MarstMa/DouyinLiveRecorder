@@ -8,6 +8,9 @@ from pathlib import Path
 APP_NAME = "StreamerRecording"
 APP_VERSION = "0.2"
 
+# 文件名模板默认值
+DEFAULT_FILENAME_TEMPLATE = "{主播名}_{日期}_{时间}"
+
 # 画质选项（界面显示名 -> streamget 使用的代码）
 QUALITY_OPTIONS = {
     "原画": "OD",
@@ -51,6 +54,7 @@ DEFAULT_CONFIG = {
     "start_minimized": False,
     "check_update_on_start": True,
     "default_quality": "原画",
+    "filename_template": DEFAULT_FILENAME_TEMPLATE,
     "default_record_mode": "截流",
     "cookie": "",
     "streamers": [],

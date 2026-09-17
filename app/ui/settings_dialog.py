@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
@@ -19,7 +20,8 @@ from PySide6.QtWidgets import (
 )
 
 from .. import autostart
-from ..config import APP_VERSION, QUALITY_OPTIONS
+from ..config import APP_VERSION, DEFAULT_FILENAME_TEMPLATE, QUALITY_OPTIONS
+from ..naming import FILENAME_VARIABLES, preview_filename
 from ..updater import check_for_update
 
 
@@ -51,6 +53,11 @@ class SettingsDialog(QDialog):
         self.quality_combo.addItems(list(QUALITY_OPTIONS.keys()))
         self.quality_combo.setCurrentText(config.data.get("default_quality", "原画"))
         form.addRow("默认画质：", self.quality_combo)
+
+        self.filename_edit = QLineEdit()
+        self.filename_edit.setText(config.data.get("filename_template") or DEFAULT_FILENAME_TEMPLATE)
+        self.filename_edit.textChanged.connect(self._update_filename_preview)
+        form.addRow("文件名格式：", self.filename_edit)
 
         self.autostart_check = QCheckBox("开机自动启动本软件")
         self.autostart_check.setChecked(autostart.is_enabled())
@@ -99,8 +106,29 @@ class SettingsDialog(QDialog):
         buttons.accepted.connect(self._save)
         buttons.rejected.connect(self.reject)
 
+        # 文件名格式：变量插入按钮 + 实时预览
+        var_row = QHBoxLayout()
+        var_row.setSpacing(6)
+        for var in FILENAME_VARIABLES:
+            b = QPushButton("{" + var + "}")
+            b.setObjectName("smallButton")
+            b.clicked.connect(lambda _=False, v=var: self._insert_variable(v))
+            var_row.addWidget(b)
+        var_row.addStretch(1)
+
+        preview_row = QHBoxLayout()
+        self.filename_preview = QLabel("")
+        self.filename_preview.setStyleSheet("color: #94A3B8; font-size: 12px;")
+        self.reset_tpl_btn = QPushButton("恢复默认")
+        self.reset_tpl_btn.setObjectName("smallButton")
+        self.reset_tpl_btn.clicked.connect(lambda: self.filename_edit.setText(DEFAULT_FILENAME_TEMPLATE))
+        preview_row.addWidget(self.filename_preview, 1)
+        preview_row.addWidget(self.reset_tpl_btn)
+
         layout = QVBoxLayout()
         layout.addLayout(form)
+        layout.addLayout(var_row)
+        layout.addLayout(preview_row)
         layout.addWidget(hint)
         layout.addLayout(about_row)
         layout.addWidget(self.update_status)
@@ -109,6 +137,7 @@ class SettingsDialog(QDialog):
         self.setLayout(layout)
 
         self.update_checked.connect(self._on_update_checked)
+        self._update_filename_preview()
 
     # ---------- 检查更新 ----------
     def _check_update(self):
@@ -141,6 +170,19 @@ class SettingsDialog(QDialog):
         if box.exec() == QMessageBox.Yes:
             webbrowser.open(r["url"])
 
+    # ---------- 文件名格式 ----------
+    def _insert_variable(self, var):
+        token = "{" + var + "}"
+        cur = self.filename_edit.cursorPosition()
+        text = self.filename_edit.text()
+        self.filename_edit.setText(text[:cur] + token + text[cur:])
+        self.filename_edit.setCursorPosition(cur + len(token))
+        self.filename_edit.setFocus()
+
+    def _update_filename_preview(self):
+        tpl = self.filename_edit.text() or DEFAULT_FILENAME_TEMPLATE
+        self.filename_preview.setText("示例：" + preview_filename(tpl) + ".mp4")
+
     def _save(self):
         self.config.data["detect_interval_seconds"] = self.interval_spin.value()
         self.config.data["hot_interval_seconds"] = self.hot_interval_spin.value()
@@ -148,6 +190,7 @@ class SettingsDialog(QDialog):
         self.config.data["cookie"] = self.cookie_edit.toPlainText().strip()
         self.config.data["check_update_on_start"] = self.update_check.isChecked()
         self.config.data["start_minimized"] = self.minimized_check.isChecked()
+        self.config.data["filename_template"] = self.filename_edit.text().strip() or DEFAULT_FILENAME_TEMPLATE
 
         want_autostart = self.autostart_check.isChecked()
         try:

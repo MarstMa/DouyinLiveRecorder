@@ -7,7 +7,8 @@ from PySide6.QtCore import QObject, Signal
 
 from .config import Config, default_save_root, sanitize_filename
 from .extractor import check_stream
-from .recorder import Recorder, make_basename
+from .naming import DEFAULT_FILENAME_TEMPLATE, render_filename
+from .recorder import Recorder
 
 
 class Scheduler(QObject):
@@ -254,7 +255,12 @@ class Scheduler(QObject):
             return
         name = sanitize_filename(s.get("name") or info.get("anchor_name") or "主播")
         folder = s.get("save_folder") or str(Path(default_save_root()) / name)
-        basename = make_basename(name)
+        template = self.config.data.get("filename_template") or DEFAULT_FILENAME_TEMPLATE
+        basename = render_filename(template, {
+            "主播名": name,
+            "标题": info.get("title", ""),
+            "画质": s.get("quality") or self.config.data.get("default_quality", "原画"),
+        })
         try:
             proc, ts_path = self.recorder.start(url, folder, basename)
         except Exception as e:  # noqa: BLE001
