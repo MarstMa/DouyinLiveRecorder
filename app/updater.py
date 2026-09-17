@@ -5,7 +5,7 @@ import urllib.request
 
 from .config import APP_VERSION
 
-GITHUB_REPO = "MarstMa/StreamerRecording"
+GITHUB_REPO = "MarstMa/DouyinLiveRecorder"
 API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
 
@@ -19,7 +19,7 @@ def parse_version(tag: str) -> tuple:
 
 def check_for_update(timeout: int = 10) -> dict:
     """查询最新版本，返回 {ok, latest, url, is_new, error}。"""
-    req = urllib.request.Request(API_URL, headers={"User-Agent": "StreamerRecording"})
+    req = urllib.request.Request(API_URL, headers={"User-Agent": "DouyinLiveRecorder"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             data = json.loads(resp.read().decode("utf-8"))

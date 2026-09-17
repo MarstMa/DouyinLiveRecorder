@@ -5,7 +5,7 @@ import re
 import uuid
 from pathlib import Path
 
-APP_NAME = "StreamerRecording"
+APP_NAME = "DouyinLiveRecorder"
 APP_VERSION = "0.2"
 
 # 文件名模板默认值
@@ -25,7 +25,7 @@ RECORD_MODES = ["截流", "录屏"]
 
 
 def get_data_dir() -> Path:
-    """返回配置/数据目录：%APPDATA%\\StreamerRecording。"""
+    """返回配置/数据目录：%APPDATA%\\DouyinLiveRecorder。"""
     base = os.environ.get("APPDATA") or str(Path.home())
     d = Path(base) / APP_NAME
     d.mkdir(parents=True, exist_ok=True)

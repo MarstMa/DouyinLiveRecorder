@@ -1,4 +1,4 @@
-# StreamerRecording — 项目工作指引
+# DouyinLiveRecorder — 项目工作指引
 
 抖音直播录制软件（Windows 11）。自动检测抖音主播开播、自动录制、下播自动保存视频；后台运行不打扰、只录主播声音、淡蓝色图形界面。
 

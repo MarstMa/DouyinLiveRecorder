@@ -64,7 +64,7 @@ python main.py
 
 - 本工具仅用于个人学习与记录自己喜欢的主播直播内容，请勿用于商业用途或侵犯他人权益。
 - 抖音的接口可能随版本更新而变化，抓流逻辑集中在 `app/extractor.py`，便于后续维护替换。
-- 配置与录制文件保存在用户目录下（`%APPDATA%\StreamerRecording\`），不随代码提交。
+- 配置与录制文件保存在用户目录下（`%APPDATA%\DouyinLiveRecorder\`），不随代码提交。
 
 ## 依赖
 

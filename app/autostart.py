@@ -4,7 +4,7 @@ import winreg
 from pathlib import Path
 
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
-APP_NAME = "StreamerRecording"
+APP_NAME = "DouyinLiveRecorder"
 
 
 def _launch_command() -> str:
