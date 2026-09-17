@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 
 APP_NAME = "DouyinLiveRecorder"
-APP_VERSION = "0.2"
+APP_VERSION = "0.3"
 
 # 文件名模板默认值
 DEFAULT_FILENAME_TEMPLATE = "{主播名}_{日期}_{时间}"
