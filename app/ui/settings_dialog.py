@@ -1,6 +1,5 @@
 """全局设置对话框。"""
 import threading
-import webbrowser
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
@@ -23,6 +22,7 @@ from .. import autostart
 from ..config import APP_VERSION, DEFAULT_FILENAME_TEMPLATE, QUALITY_OPTIONS
 from ..naming import FILENAME_VARIABLES, preview_filename
 from ..updater import check_for_update
+from .update_flow import prompt_and_update
 
 
 class SettingsDialog(QDialog):
@@ -160,15 +160,7 @@ class SettingsDialog(QDialog):
             self.update_status.setText(f"已是最新版本 v{APP_VERSION}")
 
     def _ask_open_download(self, r):
-        box = QMessageBox(self)
-        box.setWindowTitle("发现新版本")
-        box.setText(f"发现新版本 v{r['latest']}，是否前往下载？")
-        box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-        box.button(QMessageBox.Yes).setText("去下载")
-        box.button(QMessageBox.No).setText("稍后")
-        box.setDefaultButton(QMessageBox.Yes)
-        if box.exec() == QMessageBox.Yes:
-            webbrowser.open(r["url"])
+        prompt_and_update(self, r["latest"], r.get("asset_url", ""), r["url"])
 
     # ---------- 文件名格式 ----------
     def _insert_variable(self, var):

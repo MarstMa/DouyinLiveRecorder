@@ -1,6 +1,5 @@
 """主窗口：顶部横幅 + 主播页（三级导航）+ 系统托盘。"""
 import threading
-import webbrowser
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction, QColor, QFont, QIcon, QPainter, QPixmap
@@ -23,6 +22,7 @@ from ..scheduler import Scheduler
 from ..updater import check_for_update
 from .settings_dialog import SettingsDialog
 from .streamer_page import StreamerPage
+from .update_flow import prompt_and_update
 
 def make_app_icon() -> QIcon:
     """程序化生成圆形图标。"""
@@ -44,7 +44,7 @@ def make_app_icon() -> QIcon:
 
 
 class MainWindow(QMainWindow):
-    update_found = Signal(str, str)
+    update_found = Signal(str, str, str)  # 版本, 网页地址, exe 下载地址
 
     def __init__(self, config: Config, scheduler: Scheduler):
         super().__init__()
@@ -134,18 +134,10 @@ class MainWindow(QMainWindow):
     def _update_check_worker(self):
         r = check_for_update()
         if r.get("ok") and r.get("is_new"):
-            self.update_found.emit(r["latest"], r["url"])
+            self.update_found.emit(r["latest"], r["url"], r["asset_url"])
 
-    def _on_update_found(self, version, url):
-        box = QMessageBox(self)
-        box.setWindowTitle("发现新版本")
-        box.setText(f"发现新版本 v{version}，是否前往下载？")
-        box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-        box.button(QMessageBox.Yes).setText("去下载")
-        box.button(QMessageBox.No).setText("稍后")
-        box.setDefaultButton(QMessageBox.Yes)
-        if box.exec() == QMessageBox.Yes:
-            webbrowser.open(url)
+    def _on_update_found(self, version, url, asset_url):
+        prompt_and_update(self, version, asset_url, url)
 
     # ---------- 托盘 / 关闭 ----------
     def _on_notify(self, title, message):

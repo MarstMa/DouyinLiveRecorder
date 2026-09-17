@@ -1,80 +1,47 @@
-"""视频库：扫描已录制的视频并按主播分组。"""
+"""视频库：扫描某主播已录制的视频。"""
 import re
 from datetime import datetime
 from pathlib import Path
 
-from .config import Config, default_save_root, sanitize_filename
+from .config import Config, default_save_root
 
 
-def collect_video_dirs(config: Config) -> list[str]:
-    """返回要扫描的目录：默认保存目录 + 各主播的保存目录。"""
-    dirs = {default_save_root()}
-    for s in config.streamers:
-        name = s.get("name") or ""
-        folder = s.get("save_folder") or str(Path(default_save_root()) / name)
-        if folder:
-            dirs.add(folder)
-    return list(dirs)
+def streamer_folder(config: Config, streamer: dict) -> str:
+    """返回该主播的保存文件夹（自定义优先，否则用默认目录下的主播名子目录）。"""
+    name = (streamer.get("name") or "").strip() or "主播"
+    return streamer.get("save_folder") or str(Path(default_save_root()) / name)
 
 
-def scan_videos(config: Config) -> list:
-    """扫描视频并按主播分组。
+def scan_streamer_videos(config: Config, streamer: dict) -> list:
+    """扫描某主播保存文件夹里的 .mp4，按日期倒序返回。
 
-    返回 [(主播名, [视频 dict, ...]), ...]，按主播名排序，「其他」排最后；
     视频 dict：path / name / date / size。
+    直接扫该主播自己的文件夹，不依赖文件名格式，自定义文件名也能正确识别。
     """
-    # 主播名前缀映射（文件名前缀 -> 主播名）
-    prefixes = []
-    for s in config.streamers:
-        name = s.get("name") or ""
-        if name:
-            prefixes.append((sanitize_filename(name), name))
+    root = Path(streamer_folder(config, streamer))
+    if not root.exists():
+        return []
 
-    groups: dict[str, list] = {}
-    seen = set()
-    for d in collect_video_dirs(config):
-        root = Path(d)
-        if not root.exists():
+    videos = []
+    for f in root.rglob("*.mp4"):
+        try:
+            st = f.stat()
+        except OSError:
             continue
-        for f in root.rglob("*.mp4"):
-            key = str(f.resolve())
-            if key in seen:
-                continue
-            seen.add(key)
-            group = _match_group(f.name, prefixes)
-            groups.setdefault(group, []).append({
-                "path": str(f),
-                "name": f.name,
-                "date": _parse_date(f.name) or _fmt_mtime(f),
-                "size": f.stat().st_size,
-            })
+        videos.append({
+            "path": str(f),
+            "name": f.name,
+            "date": _parse_date(f.name) or _fmt_mtime(st.st_mtime),
+            "size": st.st_size,
+        })
 
-    for g in groups:
-        groups[g].sort(key=lambda v: v["date"], reverse=True)
-
-    ordered = sorted(groups.items(), key=lambda kv: (kv[0] == "其他", kv[0]))
-    return ordered
-
-
-def scan_streamer_videos(config: Config, streamer_name: str) -> list:
-    """返回某个主播的已录视频列表（按日期倒序）。"""
-    for name, videos in scan_videos(config):
-        if name == streamer_name:
-            return videos
-    return []
-
-
-def _match_group(filename: str, prefixes: list) -> str:
-    for prefix, name in prefixes:
-        if filename.startswith(prefix + "_"):
-            return name
-    if "_" in filename:
-        return filename.split("_")[0]
-    return "其他"
+    videos.sort(key=lambda v: v["date"], reverse=True)
+    return videos
 
 
 def _parse_date(filename: str) -> str | None:
-    m = re.search(r"_(\d{8})_(\d{6})", filename)
+    """从文件名里提取 `YYYYMMDD_HHMMSS` 作为录制时间，取不到返回 None。"""
+    m = re.search(r"(\d{8})[_\-\s]?(\d{6})", filename)
     if m:
         try:
             dt = datetime.strptime(m.group(1) + m.group(2), "%Y%m%d%H%M%S")
@@ -84,8 +51,8 @@ def _parse_date(filename: str) -> str | None:
     return None
 
 
-def _fmt_mtime(f: Path) -> str:
-    return datetime.fromtimestamp(f.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+def _fmt_mtime(ts: float) -> str:
+    return datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def format_size(num: int) -> str:

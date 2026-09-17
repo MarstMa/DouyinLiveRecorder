@@ -18,6 +18,8 @@ class Scheduler(QObject):
     status_updated = Signal(str, str, str, str)
     # 录制状态变化（任一主播开始/停止录制）
     recording_changed = Signal()
+    # 某主播录制收尾完成（生成 mp4 后），参数为主播 id
+    recording_finished = Signal(str)
     # 系统通知（标题, 内容）
     notify = Signal(str, str)
     # 日志文本
@@ -288,7 +290,7 @@ class Scheduler(QObject):
         self.recorder.stop(proc)
         if ts is not None:
             threading.Thread(
-                target=self._finalize_bg, args=(ts, folder, basename, name, reason), daemon=True
+                target=self._finalize_bg, args=(sid, ts, folder, basename, name, reason), daemon=True
             ).start()
         else:
             self.log.emit(f"录制结束（{reason}）：{name}")
@@ -300,7 +302,7 @@ class Scheduler(QObject):
         for sid in sids:
             self._stop_recording(sid, reason)
 
-    def _finalize_bg(self, ts, folder, basename, name, reason):
+    def _finalize_bg(self, sid, ts, folder, basename, name, reason):
         mp4 = self.recorder.finalize(ts, folder, basename)
         if mp4:
             self.log.emit(f"录制完成（{reason}），已保存：{mp4}")
@@ -308,3 +310,4 @@ class Scheduler(QObject):
         else:
             self.log.emit(f"录制结束（{reason}）：{name}（视频生成失败，原始文件保留在 {ts}）")
             self.notify.emit("录制结束", f"{name} 录制结束（{reason}）")
+        self.recording_finished.emit(sid)

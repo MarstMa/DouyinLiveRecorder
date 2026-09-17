@@ -390,7 +390,7 @@ class StreamerOverviewView(QWidget):
             w = item.widget()
             if w:
                 w.deleteLater()
-        videos = scan_streamer_videos(self.config, self._streamer.get("name", ""))
+        videos = scan_streamer_videos(self.config, self._streamer)
         self.videos_count.setText(f"（{len(videos)} 个）")
         for v in videos:
             self.videos_layout.addWidget(self._build_video_row(v))
@@ -401,6 +401,10 @@ class StreamerOverviewView(QWidget):
             hint.setMinimumHeight(70)
             self.videos_layout.addWidget(hint)
         self.videos_layout.addStretch(1)
+
+    def refresh_videos(self):
+        """公开入口：录制结束后由调度器触发刷新视频列表。"""
+        self._refresh_videos()
 
     def _build_video_row(self, v):
         row = QFrame()
@@ -835,6 +839,7 @@ class StreamerPage(QWidget):
         self.scheduler.log.connect(self._on_log)
         self.scheduler.status_updated.connect(self._on_status)
         self.scheduler.recording_changed.connect(self._refresh_recording)
+        self.scheduler.recording_finished.connect(self._on_recording_finished)
 
     # ---------- 信号槽 ----------
     def _on_log(self, msg):
@@ -851,6 +856,10 @@ class StreamerPage(QWidget):
         if self.overview_view and self.overview_view.sid == sid:
             self.overview_view.update_status(state, anchor_name, error)
         self._resort_if_needed()
+
+    def _on_recording_finished(self, sid):
+        if self.overview_view and self.overview_view.sid == sid:
+            self.overview_view.refresh_videos()
 
     def _refresh_recording(self):
         recording_ids = self.scheduler.recording_ids
